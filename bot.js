@@ -1,186 +1,109 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-          ______     ______     ______   __  __     __     ______
-          /\  == \   /\  __ \   /\__  _\ /\ \/ /    /\ \   /\__  _\
-          \ \  __<   \ \ \/\ \  \/_/\ \/ \ \  _"-.  \ \ \  \/_/\ \/
-          \ \_____\  \ \_____\    \ \_\  \ \_\ \_\  \ \_\    \ \_\
-           \/_____/   \/_____/     \/_/   \/_/\/_/   \/_/     \/_/
-
-
-This is a sample Slack bot built with Botkit.
-
-This bot demonstrates many of the core features of Botkit:
-
-* Connect to Slack using the real time API
-* Receive messages based on "spoken" patterns
-* Reply to messages
-* Use the conversation system to ask questions
-* Use the built in storage system to store and retrieve information
-  for a user.
-
-# RUN THE BOT:
-
-  Get a Bot token from Slack:
-
-    -> http://my.slack.com/services/new/bot
-
-  Run your bot from the command line:
-
-    token=<MY TOKEN> node bot.js
-
-# USE THE BOT:
-
-  Find your bot inside Slack to send it a direct message.
-
-  Say: "Hello"
-
-  The bot will reply "Hello!"
-
-  Say: "who are you?"
-
-  The bot will tell you its name, where it running, and for how long.
-
-  Say: "Call me <nickname>"
-
-  Tell the bot your nickname. Now you are friends.
-
-  Say: "who am I?"
-
-  The bot will tell you your nickname, if it knows one for you.
-
-  Say: "shutdown"
-
-  The bot will ask if you are sure, and then shut itself down.
-
-  Make sure to invite your bot into other channels using /invite @<my bot>!
-
-# EXTEND THE BOT:
-
-  Botkit is has many features for building cool and useful bots!
-
-  Read all about it here:
-
-    -> http://howdy.ai/botkit
-
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-
-
-if (!process.env.token) {
+var process_token = process.env.token;
+if (!process_token) {
     console.log('Error: Specify token in environment');
     process.exit(1);
 }
 
 var Botkit = require('./lib/Botkit.js');
 var os = require('os');
+var schedule = require('node-schedule');
 
 var controller = Botkit.slackbot({
-    debug: true,
+    debug: false
 });
 
 var bot = controller.spawn({
-    token: process.env.token
+    token: process_token
 }).startRTM();
 
+var flag_owner = 'alefas';
 
-controller.hears(['hello','hi'],'direct_message,direct_mention,mention',function(bot, message) {
-
-    bot.api.reactions.add({
-        timestamp: message.ts,
-        channel: message.channel,
-        name: 'robot_face',
-    },function(err, res) {
-        if (err) {
-            bot.botkit.log('Failed to add emoji reaction :(',err);
-        }
+function user_list(cb) {
+    bot.api.users.list({token: process_token}, function (err, json) {
+        cb(json.members)
     });
+}
 
-
-    controller.storage.users.get(message.user,function(err, user) {
-        if (user && user.name) {
-            bot.reply(message,'Hello ' + user.name + '!!');
-        } else {
-            bot.reply(message,'Hello.');
-        }
+function im_list(cb) {
+    bot.api.im.list({token: process_token}, function (err, json) {
+        cb(json.ims);
     });
-});
+}
 
-controller.hears(['call me (.*)'],'direct_message,direct_mention,mention',function(bot, message) {
-    var matches = message.text.match(/call me (.*)/i);
-    var name = matches[1];
-    controller.storage.users.get(message.user,function(err, user) {
-        if (!user) {
-            user = {
-                id: message.user,
-            };
-        }
-        user.name = name;
-        controller.storage.users.save(user,function(err, id) {
-            bot.reply(message,'Got it. I will call you ' + user.name + ' from now on.');
+
+function user_id(username, cb) {
+    //todo: cache
+    user_list(function (userlist) {
+        userlist.forEach(function (element, i, arr) {
+            if (element.name == username) {
+                cb(element.id);
+            }
         });
     });
-});
-
-controller.hears(['what is my name','who am i'],'direct_message,direct_mention,mention',function(bot, message) {
-
-    controller.storage.users.get(message.user,function(err, user) {
-        if (user && user.name) {
-            bot.reply(message,'Your name is ' + user.name);
-        } else {
-            bot.reply(message,'I don\'t know yet!');
-        }
-    });
-});
-
-
-controller.hears(['shutdown'],'direct_message,direct_mention,mention',function(bot, message) {
-
-    bot.startConversation(message,function(err, convo) {
-        convo.ask('Are you sure you want me to shutdown?',[
-            {
-                pattern: bot.utterances.yes,
-                callback: function(response, convo) {
-                    convo.say('Bye!');
-                    convo.next();
-                    setTimeout(function() {
-                        process.exit();
-                    },3000);
-                }
-            },
-        {
-            pattern: bot.utterances.no,
-            default: true,
-            callback: function(response, convo) {
-                convo.say('*Phew!*');
-                convo.next();
-            }
-        }
-        ]);
-    });
-});
-
-
-controller.hears(['uptime','identify yourself','who are you','what is your name'],'direct_message,direct_mention,mention',function(bot, message) {
-
-    var hostname = os.hostname();
-    var uptime = formatUptime(process.uptime());
-
-    bot.reply(message,':robot_face: I am a bot named <@' + bot.identity.name + '>. I have been running for ' + uptime + ' on ' + hostname + '.');
-
-});
-
-function formatUptime(uptime) {
-    var unit = 'second';
-    if (uptime > 60) {
-        uptime = uptime / 60;
-        unit = 'minute';
-    }
-    if (uptime > 60) {
-        uptime = uptime / 60;
-        unit = 'hour';
-    }
-    if (uptime != 1) {
-        unit = unit + 's';
-    }
-
-    uptime = uptime + ' ' + unit;
-    return uptime;
 }
+
+function im_id(userid, cb) {
+    im_list(function (imlist) {
+        var found = false;
+        imlist.forEach(function (element, index, array) {
+            if (element.user == userid) {
+                cb(element.id);
+                found = true;
+            }
+        });
+        if (!found) {
+            bot.api.im.open({token: process_token, user: userid}, function (err, json) {
+                if (!err) {
+                    cb(json.channel.id)
+                }
+            })
+        }
+    });
+}
+
+
+//todo: move to DB
+var scala_team_users = [
+    'alefas',
+    'nikolay.tropin',
+    'alexandra.vesloguzova',
+    'andrew.kozlov',
+    'dmitry.naydanov',
+    'kate.ustyuzhanina',
+    'mikhail.mutcianko',
+    'pavel.fatin',
+    'roman.shein'
+];
+
+function broadcast_to_team(message) {
+    scala_team_users.forEach(function (user, i, arr) {
+        user_id(user, function (userid) {
+            im_id(userid, function(imid) {
+                controller.startConversation(bot, {
+                    text: 'Test',
+                    user: userid,
+                    channel: imid
+                }, function (err, convo) {
+                    convo.say(message);
+                });
+            })
+        });
+    })
+}
+
+function schedule_team_reminder (days, hour, minute, message) {
+    var rule = new schedule.RecurrenceRule();
+    rule.dayOfWeek = days;
+    rule.hour = hour;
+    rule.minute = minute;
+
+    schedule.scheduleJob(rule, function () {
+        broadcast_to_team(message)
+    })
+}
+
+schedule_team_reminder([1, 2, 4, 5], 15, 59, "Daily meeting!");
+schedule_team_reminder([3], 13, 57, "Weekly seminar!");
+
+
+
