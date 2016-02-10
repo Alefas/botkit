@@ -105,17 +105,31 @@ function schedule_team_reminder (days, hour, minute, message) {
 schedule_team_reminder([1, 2, 4, 5], 15, 59, "Daily meeting!");
 schedule_team_reminder([3], 13, 57, "Weekly seminar!");
 
-user_id(flag_owner, function (userid) {
-    im_id(userid, function(imid) {
-        controller.startConversation(bot, {
-            text: '',
-            user: userid,
-            channel: imid
-        }, function (err, convo) {
-            convo.say("You are flag owner now!");
-        });
-    })
+controller.hears(['uptime'],'direct_message,direct_mention,mention',function(bot,message) {
+
+    var hostname = os.hostname();
+    var uptime = formatUptime(process.uptime());
+
+    bot.reply(message,':robot_face: I am a bot named <@' + bot.identity.name +'>. I have been running for ' + uptime + ' on ' + hostname + ".");
+
 });
 
+function formatUptime(uptime) {
+    var unit = 'second';
+    if (uptime > 60) {
+        uptime = uptime / 60;
+        unit = 'minute';
+    }
+    if (uptime > 60) {
+        uptime = uptime / 60;
+        unit = 'hour';
+    }
+    if (uptime != 1) {
+        unit = unit +'s';
+    }
+
+    uptime = uptime + ' ' + unit;
+    return uptime;
+}
 
 
