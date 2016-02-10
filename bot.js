@@ -121,7 +121,7 @@ controller.hears(['uptime'],'direct_message,direct_mention,mention',function(bot
     var uptime = formatUptime(process.uptime());
 
     bot.reply(message,':robot_face: I am a bot named <@' + bot.identity.name +'>. I have been running for ' + uptime + ' on ' + hostname + "." +
-      "Host time " + new Date().toDateString());
+      "Host time " + new Date().getTime());
 
 });
 
