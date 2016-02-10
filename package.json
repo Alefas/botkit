@@ -22,7 +22,8 @@
   },
   "scripts": {
     "pretest": "jscs ./lib/",
-    "test": "mocha tests/*.js"
+    "test": "mocha tests/*.js",
+    "start": "node bot.js"
   },
   "repository": {
     "type": "git",
