@@ -1,3 +1,13 @@
+var http = require("http");
+
+http.createServer(function(request, response) {
+    response.writeHead(200, {"Content-Type": "text/plain"});
+    response.write("Hello World");
+    response.end();
+
+    console.log("I am working");
+}).listen(8888);
+
 var process_token = process.env.token;
 if (!process_token) {
     console.log('Error: Specify token in environment');
