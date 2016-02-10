@@ -80,7 +80,7 @@ function broadcast_to_team(message) {
         user_id(user, function (userid) {
             im_id(userid, function(imid) {
                 controller.startConversation(bot, {
-                    text: 'Test',
+                    text: '',
                     user: userid,
                     channel: imid
                 }, function (err, convo) {
@@ -104,6 +104,18 @@ function schedule_team_reminder (days, hour, minute, message) {
 
 schedule_team_reminder([1, 2, 4, 5], 15, 59, "Daily meeting!");
 schedule_team_reminder([3], 13, 57, "Weekly seminar!");
+
+user_id(flag_owner, function (userid) {
+    im_id(userid, function(imid) {
+        controller.startConversation(bot, {
+            text: '',
+            user: userid,
+            channel: imid
+        }, function (err, convo) {
+            convo.say("You are flag owner now!");
+        });
+    })
+});
 
 
 
