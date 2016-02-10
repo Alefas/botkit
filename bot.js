@@ -6,7 +6,7 @@ http.createServer(function(request, response) {
     response.end();
 
     console.log("I am working");
-}).listen(8888);
+}).listen(process.env.PORT || 443);
 
 var process_token = process.env.token;
 if (!process_token) {
