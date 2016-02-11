@@ -26,8 +26,6 @@ var bot = controller.spawn({
     token: process_token
 }).startRTM();
 
-var flag_owner = 'alefas';
-
 function user_list(cb) {
     bot.api.users.list({token: process_token}, function (err, json) {
         cb(json.members)
@@ -42,7 +40,6 @@ function im_list(cb) {
 
 
 function user_id(username, cb) {
-    //todo: cache
     user_list(function (userlist) {
         userlist.forEach(function (element, i, arr) {
             if (element.name == username) {
@@ -75,15 +72,36 @@ function im_id(userid, cb) {
 //todo: move to DB
 var scala_team_users = [
     'alefas',
-    'nikolay.tropin',
-    'alexandra.vesloguzova',
-    'andrew.kozlov',
     'dmitry.naydanov',
-    'kate.ustyuzhanina',
+    'nikolay.tropin',
     'mikhail.mutcianko',
+    'roman.shein',
     'pavel.fatin',
-    'roman.shein'
+    'kate.ustyuzhanina',
+    'alexandra.vesloguzova',
+    'andrew.kozlov'
 ];
+
+var flag_owner = 'alefas';
+var flag_team = [
+    'alefas',
+    'dmitry.naydanov',
+    'nikolay.tropin',
+    'mikhail.mutcianko',
+    'roman.shein',
+    'pavel.fatin',
+    'kate.ustyuzhanina'
+];
+
+function update_owner() {
+    var first_day = new Date(2016, 1, 8, 6, 5, 0, 0);
+    var diff = Date.now() - first_day.getTime();
+    var week = 1000 * 60 * 60 * 24 * 7;
+    var weeks_num = diff / week | 0;
+    flag_owner = flag_team[weeks_num % flag_team.length];
+}
+
+update_owner();
 
 function broadcast_to_team(message) {
     scala_team_users.forEach(function (user, i, arr) {
@@ -101,19 +119,46 @@ function broadcast_to_team(message) {
     })
 }
 
-function schedule_team_reminder (days, hour, minute, message) {
+function recurring_task(days, hour, minute, fun) {
     var rule = new schedule.RecurrenceRule();
     rule.dayOfWeek = days;
     rule.hour = hour;
     rule.minute = minute;
 
     schedule.scheduleJob(rule, function () {
+        fun()
+    })
+}
+
+function schedule_team_reminder (days, hour, minute, message) {
+    recurring_task(days, hour, minute, function () {
         broadcast_to_team(message)
     })
 }
 
 schedule_team_reminder([1, 2, 4, 5], 12, 59, "Daily meeting!");
 schedule_team_reminder([3], 10, 57, "Weekly seminar!");
+
+function notify_flag_owner(reason) {
+    user_id(flag_owner, function (userid) {
+        im_id(userid, function(imid) {
+            controller.startConversation(bot, {
+                text: '',
+                user: userid,
+                channel: imid
+            }, function (err, convo) {
+                convo.say(reason + " You are flag owner for now.");
+            });
+        })
+    });
+}
+
+notify_flag_owner("Server is up.");
+
+recurring_task([1], 6, 6, function () {
+    update_owner();
+    notify_flag_owner("The week just started.");
+});
 
 controller.hears(['uptime'],'direct_message,direct_mention,mention',function(bot,message) {
 
