@@ -84,13 +84,13 @@ var scala_team_users = [
 
 var flag_owner = 'alefas';
 var flag_team = [
-    'alefas',
+    'kate.ustyuzhanina',
     'dmitry.naydanov',
     'nikolay.tropin',
+    'alefas',
     'mikhail.mutcianko',
     'roman.shein',
-    'pavel.fatin',
-    'kate.ustyuzhanina'
+    'pavel.fatin'
 ];
 
 function update_owner() {
