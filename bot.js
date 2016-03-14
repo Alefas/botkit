@@ -71,7 +71,6 @@ function im_id(userid, cb) {
 
 //todo: move to DB
 var scala_team_users = [
-    'alefas',
     'dmitry.naydanov',
     'nikolay.tropin',
     'mikhail.mutcianko',
@@ -79,7 +78,8 @@ var scala_team_users = [
     'pavel.fatin',
     'kate.ustyuzhanina',
     'alexandra.vesloguzova',
-    'andrew.kozlov'
+    'andrew.kozlov',
+    'alefas'
 ];
 
 var flag_owner = 'alefas';
