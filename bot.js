@@ -79,7 +79,8 @@ var scala_team_users = [
     'kate.ustyuzhanina',
     'alexandra.vesloguzova',
     'andrew.kozlov',
-    'alefas'
+    'alefas',
+    'anton.yalyshev'	
 ];
 
 var flag_owner = 'alefas';
