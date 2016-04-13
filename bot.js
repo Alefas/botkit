@@ -218,6 +218,13 @@ controller.hears(['seminar owner'],'direct_message,direct_mention,mention',funct
     bot.reply(message,'Seminar owner is ' + seminar_owner() + ".");
 });
 
+controller.hears(['users'],'direct_message,direct_mention,mention',function(bot,message) {
+    bot.reply(message,'All users database: ');
+    users.forEach(function (user, index, array) {
+        bot.reply(JSON.stringify(user))
+    })
+});
+
 function formatUptime(uptime) {
     var unit = 'second';
     if (uptime > 60) {
