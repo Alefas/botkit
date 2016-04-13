@@ -1,12 +1,20 @@
-var http = require("http");
+//Database: PostgreSQL
+//Host: ec2-23-21-249-224.compute-1.amazonaws.com
+//User: fkyrspabeqortn
+//Password: Eyj_zb0WJ8hXLSA_wSJeykCMNz
+//Port: 5432
+//URL: postgres://fkyrspabeqortn:Eyj_zb0WJ8hXLSA_wSJeykCMNz@ec2-23-21-249-224.compute-1.amazonaws.com:5432/d9undrb8iddcgc
 
-http.createServer(function(request, response) {
+var http = require("http");
+var pg = require('pg');
+
+/*http.createServer(function(request, response) {
     response.writeHead(200, {"Content-Type": "text/plain"});
     response.write("Hello World");
     response.end();
 
     console.log("I am working");
-}).listen(process.env.PORT || 443);
+}).listen(process.env.PORT || 443);*/
 
 var process_token = process.env.token;
 if (!process_token) {
@@ -69,54 +77,25 @@ function im_id(userid, cb) {
 }
 
 
-//todo: move to DB
-var scala_team_users = [
-    'dmitry.naydanov',
-    'nikolay.tropin',
-    'mikhail.mutcianko',
-    'roman.shein',
-    'pavel.fatin',
-    'kate.ustyuzhanina',
-    'alexandra.vesloguzova',
-    'andrew.kozlov',
-    'alefas',
-    'anton.yalyshev'	
-];
+var users = [];
 
-var flag_owner = 'alefas';
-var flag_team = [
-    'kate.ustyuzhanina',
-    'dmitry.naydanov',
-    'nikolay.tropin',
-    'alefas',
-    'mikhail.mutcianko',
-    'roman.shein',
-    'pavel.fatin'
-];
-
-function update_owner() {
-    var first_day = new Date(2016, 1, 8, 6, 5, 0, 0);
-    var diff = Date.now() - first_day.getTime();
-    var week = 1000 * 60 * 60 * 24 * 7;
-    var weeks_num = diff / week | 0;
-    flag_owner = flag_team[weeks_num % flag_team.length];
+function direct_message(user_name, message) {
+    user_id(user_name, function (userid) {
+        im_id(userid, function(imid) {
+            controller.startConversation(bot, {
+                text: '',
+                user: userid,
+                channel: imid
+            }, function (err, convo) {
+                convo.say(message);
+            });
+        })
+    });
 }
 
-update_owner();
-
 function broadcast_to_team(message) {
-    scala_team_users.forEach(function (user, i, arr) {
-        user_id(user, function (userid) {
-            im_id(userid, function(imid) {
-                controller.startConversation(bot, {
-                    text: '',
-                    user: userid,
-                    channel: imid
-                }, function (err, convo) {
-                    convo.say(message);
-                });
-            })
-        });
+    users.forEach(function (user, i, arr) {
+        direct_message(user.name, message);
     })
 }
 
@@ -137,29 +116,89 @@ function schedule_team_reminder (days, hour, minute, message) {
     })
 }
 
-schedule_team_reminder([1, 2, 4, 5], 12, 59, "Daily meeting!");
-schedule_team_reminder([3], 10, 57, "Weekly seminar!");
+function flag_owner() { //user with minimal flag_order
+    return users.reduce(function (res, user) {
+        if (user.flag_order) {
+            if (res) {
+                if (res.flag_order > user.flag_order) {
+                    return user;
+                }
+            } else {
+                return user;
+            }
+        }
+        return res;
+    }, undefined).name;
+}
 
-function notify_flag_owner(reason) {
-    user_id(flag_owner, function (userid) {
-        im_id(userid, function(imid) {
-            controller.startConversation(bot, {
-                text: '',
-                user: userid,
-                channel: imid
-            }, function (err, convo) {
-                convo.say(reason + " You are flag owner for now.");
+function seminar_owner() { //the user with minimal seminar_order
+    return users.reduce(function (res, user) {
+        if (user.seminar_order) {
+            if (res) {
+                if (res.seminar_order > user.seminar_order) {
+                    return user;
+                }
+            } else {
+                return user;
+            }
+        }
+        return res;
+    }, undefined).name;
+}
+
+function update_seminar_order() {
+    var owner = seminar_owner();
+    var max = users.reduce(function (max, user) {
+        if (user.seminar_order) {
+            if (user.seminar_order > max) {
+                return user.seminar_order;
+            }
+        }
+        return max;
+    }, 0);
+
+    for (var i = 0; i < users.length; i++) {
+        if (users[i].name == owner) {
+            users[i].seminar_order = max + 1;
+        }
+    }
+
+    pg.connect("postgres://fkyrspabeqortn:Eyj_zb0WJ8hXLSA_wSJeykCMNz@ec2-23-21-249-224.compute-1.amazonaws.com:5432/d9undrb8iddcgc", function(err, client) {
+        if (err) throw err;
+        client.query("UPDATE users SET seminar_order = " + (max + 1) + " WHERE name = '" + owner + "';")
+            .on('row', function(row) {
             });
-        })
     });
 }
 
-notify_flag_owner("Server is up.");
+function update_flag_order() {
+    var owner = flag_owner();
+    var max = users.reduce(function (max, user) {
+        if (user.flag_order) {
+            if (user.flag_order > max) {
+                return user.flag_order;
+            }
+        }
+        return max;
+    }, 0);
 
-recurring_task([1], 6, 6, function () {
-    update_owner();
-    notify_flag_owner("The week just started.");
-});
+    for (var i = 0; i < users.length; i++) {
+        if (users[i].name == owner) {
+            users[i].flag_order = max + 1;
+        }
+    }
+
+    pg.connect("postgres://fkyrspabeqortn:Eyj_zb0WJ8hXLSA_wSJeykCMNz@ec2-23-21-249-224.compute-1.amazonaws.com:5432/d9undrb8iddcgc", function(err, client) {
+        if (err) throw err;
+        client.query("UPDATE users SET flag_order = " + (max + 1) + " WHERE name = '" + owner + "';")
+            .on('row', function(row) {
+            });
+    });
+}
+
+function notify_flag_owner(reason) {
+    direct_message(flag_owner(), reason + " You are flag owner for now.");
+}
 
 controller.hears(['uptime'],'direct_message,direct_mention,mention',function(bot,message) {
 
@@ -169,6 +208,14 @@ controller.hears(['uptime'],'direct_message,direct_mention,mention',function(bot
     bot.reply(message,'I have been running for ' + uptime + ' on ' + hostname + ". " +
       "Host time: " + new Date().toString());
 
+});
+
+controller.hears(['flag owner'],'direct_message,direct_mention,mention',function(bot,message) {
+    bot.reply(message,'Flag owner is ' + flag_owner() + ".");
+});
+
+controller.hears(['seminar owner'],'direct_message,direct_mention,mention',function(bot,message) {
+    bot.reply(message,'Seminar owner is ' + seminar_owner() + ".");
 });
 
 function formatUptime(uptime) {
@@ -189,4 +236,41 @@ function formatUptime(uptime) {
     return uptime;
 }
 
+pg.defaults.ssl = true;
+pg.connect("postgres://fkyrspabeqortn:Eyj_zb0WJ8hXLSA_wSJeykCMNz@ec2-23-21-249-224.compute-1.amazonaws.com:5432/d9undrb8iddcgc", function(err, client) {
+    if (err) throw err;
+    console.log('Connected to postgres! Getting schemas...');
 
+    var query = client.query('SELECT name, seminar_order, flag_order FROM users;');
+    query.on('row', function(row) {
+            var user = row;
+            console.log(user);
+            users.push(user);
+        });
+
+    query.on('end', function () {
+        schedule_team_reminder([1, 2, 4, 5], 12, 59, "Daily meeting!");
+
+        schedule_team_reminder([3], 10, 57, "Weekly seminar!");
+        recurring_task([3], 10, 57, function () {
+            broadcast_to_team("Weekly seminar with " + seminar_owner() + " !");
+            update_seminar_order();
+        });
+        recurring_task([3], 11, 57, function() {
+            direct_message(seminar_owner(), "You are the next seminar owner!");
+        });
+        recurring_task([1], 10, 57, function () {
+            direct_message(seminar_owner(), "Two days left before your seminar...");
+        });
+
+        recurring_task([1], 6, 6, function () {
+            notify_flag_owner("The week just started.");
+        });
+        recurring_task([2, 3, 4, 5], 6, 6, function () {
+            notify_flag_owner("The day just started.");
+        });
+        recurring_task([6], 6, 6, function () {
+            update_flag_order();
+        })
+    });
+});
