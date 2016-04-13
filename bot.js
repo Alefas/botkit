@@ -8,13 +8,13 @@
 var http = require("http");
 var pg = require('pg');
 
-/*http.createServer(function(request, response) {
+http.createServer(function(request, response) {
     response.writeHead(200, {"Content-Type": "text/plain"});
     response.write("Hello World");
     response.end();
 
     console.log("I am working");
-}).listen(process.env.PORT || 443);*/
+}).listen(process.env.PORT || 443);
 
 var process_token = process.env.token;
 if (!process_token) {
