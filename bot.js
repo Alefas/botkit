@@ -221,7 +221,7 @@ controller.hears(['seminar owner'],'direct_message,direct_mention,mention',funct
 controller.hears(['users'],'direct_message,direct_mention,mention',function(bot,message) {
     bot.reply(message,'All users database: ');
     users.forEach(function (user, index, array) {
-        bot.reply(JSON.stringify(user))
+        bot.reply(message, JSON.stringify(user))
     })
 });
 
@@ -258,7 +258,6 @@ pg.connect("postgres://fkyrspabeqortn:Eyj_zb0WJ8hXLSA_wSJeykCMNz@ec2-23-21-249-2
     query.on('end', function () {
         schedule_team_reminder([1, 2, 4, 5], 12, 59, "Daily meeting!");
 
-        schedule_team_reminder([3], 10, 57, "Weekly seminar!");
         recurring_task([3], 10, 57, function () {
             broadcast_to_team("Weekly seminar with " + seminar_owner() + " !");
             update_seminar_order();
