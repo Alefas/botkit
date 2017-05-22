@@ -256,26 +256,24 @@ pg.connect("postgres://fkyrspabeqortn:Eyj_zb0WJ8hXLSA_wSJeykCMNz@ec2-23-21-249-2
         });
 
     query.on('end', function () {
-        schedule_team_reminder([1, 2, 4, 5], 12, 59, "Daily meeting!");
+        schedule_team_reminder([1], 13 - 3, 15 - 1, "Biweekly meeting! @(SPb #5, Munich #4)"); // 13:15 MSK
+        schedule_team_reminder([1, 2, 4, 5], 15 - 3, 45 - 1, "Daily meeting! @(SPb #5, Munich #5)"); // 15:45 MSK
+        schedule_team_reminder([3], 15 - 4, 60 - 1, "Daily meeting! @(SPb #4, Munich #4)"); // 15:00 MSK
 
-        recurring_task([3], 10, 57, function () {
-            broadcast_to_team("Weekly seminar with " + seminar_owner() + " !");
-            update_seminar_order();
+        recurring_task([3], 11, 0, function () {
+            direct_message(seminar_owner(), "You're the next seminar owner!");
         });
-        recurring_task([3], 11, 57, function() {
-            direct_message(seminar_owner(), "You are the next seminar owner!");
-        });
-        recurring_task([1], 10, 57, function () {
+        recurring_task([1], 11, 0, function () {
             direct_message(seminar_owner(), "Two days left before your seminar...");
         });
 
-        recurring_task([1], 6, 6, function () {
-            notify_flag_owner("The week just started.");
+        recurring_task([1], 6, 0, function () {
+            notify_flag_owner("The week has just started.");
         });
-        recurring_task([2, 3, 4, 5], 6, 6, function () {
-            notify_flag_owner("The day just started.");
+        recurring_task([2, 3, 4, 5], 6, 0, function () {
+            notify_flag_owner("The day has just started.");
         });
-        recurring_task([6], 6, 6, function () {
+        recurring_task([6], 6, 0, function () {
             update_flag_order();
         })
     });
